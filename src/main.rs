@@ -1,6 +1,6 @@
 extern crate sdl2;
 
-use sdl2::{pixels::Color, event::Event, keyboard::Keycode, rect::Point, mouse::{MouseState, MouseButton}};
+use sdl2::{pixels::Color, event::Event, keyboard::Keycode, rect::Point};
 
 mod complex;
 use complex::Complex;
@@ -19,7 +19,7 @@ fn mandelbrot_iterate(z: Complex, c: Complex) -> Complex {
 }
 
 fn mandelbrot_test(c: Complex) -> TestResult {
-    static MAX_ITERATION: u32 = 256;
+    static MAX_ITERATION: u32 = 128;
     let mut z = Complex::new(0.0, 0.0);
     for i in 0..MAX_ITERATION {
         z = mandelbrot_iterate(z, c);
@@ -53,16 +53,16 @@ fn hsv_to_rgb(hsv: (f32, f32, f32)) -> Color {
 }
  
 fn colorize(result: TestResult) -> Color {
-    let (i, z, c) = match result {
+    let (i, _, _) = match result {
         TestResult::Converge => return Color::RGB(255, 255, 255),
         TestResult::Diverge { iteration, z, c } => (iteration, z, c)
     };
-    let brightness = i as f32 / 256.0;
-    return hsv_to_rgb((240.0 - brightness * 120.0, 1.0, brightness));
+    let brightness = i as f32 / 128.0;
+    return hsv_to_rgb((240.0 - brightness * 120.0, 1.0 - brightness.powi(3), brightness));
 }
 
-const WIDTH: u32 = 1280;
-const HEIGHT: u32 = 720;
+const WIDTH: u32 = 2100;
+const HEIGHT: u32 = 900;
 
 fn main() {
     let context = sdl2::init().unwrap();
@@ -107,21 +107,21 @@ fn main() {
 
         let start_time = std::time::SystemTime::now();
         const CORE_COUNT: u32 = 24;
-        const BLOCK_HEIGHT: usize = (HEIGHT / CORE_COUNT) as usize;
-        const BLOCK_SIZE: usize = BLOCK_HEIGHT * WIDTH as usize;
+        
         let mut threads = vec![];
         for i in 0..CORE_COUNT {
+            let start_y = (HEIGHT as f32 / CORE_COUNT as f32 * i as f32).round() as usize;
+            let end_y = (HEIGHT as f32 / CORE_COUNT as f32 * (i + 1) as f32).round() as usize;
             let handle = std::thread::spawn(move || -> (i32, Vec<Color>) {
                 let mut array: Vec<Color> = vec![];
-                array.reserve(BLOCK_SIZE);
-                let start_y = i as i32 * BLOCK_HEIGHT as i32;
-                for y in start_y..(start_y + BLOCK_HEIGHT as i32) {
+                array.reserve((end_y - start_y) * WIDTH as usize);
+                for y in start_y..end_y {
                     for x in 0..WIDTH as i32 {
-                        let c = center + Complex::new((x - WIDTH as i32 / 2) as f64 * scale, (y - HEIGHT as i32 / 2) as f64 * scale);
+                        let c = center + Complex::new((x - WIDTH as i32 / 2) as f64 * scale, (y as i32 - HEIGHT as i32 / 2) as f64 * scale);
                         array.push(colorize(mandelbrot_test(c)));
                     }
                 }
-                return (start_y, array);
+                return (start_y as i32, array);
             });
             threads.push(handle);
         }
