@@ -2,6 +2,8 @@ extern crate sdl2;
 
 use sdl2::{pixels::Color, event::Event, keyboard::Keycode};
 
+mod complex;
+
 static WIDTH: u32 = 1280;
 static HEIGHT: u32 = 720;
 
@@ -28,6 +30,8 @@ fn main() {
                 }
                 _ => {}
             }
+
+            canvas.present();
         }
     }
 }
