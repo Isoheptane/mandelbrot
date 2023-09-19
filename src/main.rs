@@ -19,7 +19,7 @@ fn mandelbrot_iterate(z: Complex, c: Complex) -> Complex {
 }
 
 fn mandelbrot_test(c: Complex) -> TestResult {
-    static MAX_ITERATION: u32 = 64;
+    static MAX_ITERATION: u32 = 256;
     let mut z = Complex::new(0.0, 0.0);
     for i in 0..MAX_ITERATION {
         z = mandelbrot_iterate(z, c);
@@ -29,15 +29,36 @@ fn mandelbrot_test(c: Complex) -> TestResult {
     }
     return TestResult::Converge;
 }
+
+fn hsv_to_rgb(hsv: (f32, f32, f32)) -> Color {
+    let h = (hsv.0 % 360.0 + 360.0) % 360.0;
+    let s = hsv.1;
+    let v = hsv.2;
+    let r = {
+        let distance = f32::min((h - 0.0).abs(), (h - 360.0).abs());
+        let weight = ((120.0 - distance) / 60.0).clamp(0.0, 1.0);
+        (1.0 - (1.0 - weight) * s) * v
+    };
+    let g = {
+        let distance = (h - 120.0).abs();
+        let weight = ((120.0 - distance) / 60.0).clamp(0.0, 1.0);
+        (1.0 - (1.0 - weight) * s) * v
+    };
+    let b = {
+        let distance = (h - 240.0).abs();
+        let weight = ((120.0 - distance) / 60.0).clamp(0.0, 1.0);
+        (1.0 - (1.0 - weight) * s) * v
+    };
+    Color::RGB((r * 255.0).round() as u8, (g * 255.0).round() as u8, (b * 255.0).round() as u8)
+}
  
 fn colorize(result: TestResult) -> Color {
     let (i, z, c) = match result {
         TestResult::Converge => return Color::RGB(255, 255, 255),
         TestResult::Diverge { iteration, z, c } => (iteration, z, c)
     };
-    let brightness = i as f64 / 64 as f64;
-    let brightness = (brightness * 255.0).round() as u8;
-    Color::RGB(brightness, brightness, brightness)
+    let brightness = i as f32 / 256.0;
+    return hsv_to_rgb((240.0 - brightness * 120.0, 1.0, brightness));
 }
 
 const WIDTH: u32 = 1280;
