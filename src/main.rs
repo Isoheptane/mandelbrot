@@ -1,6 +1,6 @@
 extern crate sdl2;
 
-use sdl2::{pixels::Color, event::Event, keyboard::Keycode, rect::Point};
+use sdl2::{pixels::Color, event::Event, keyboard::Keycode, rect::Point, mouse::{MouseState, MouseButton}};
 
 mod complex;
 use complex::Complex;
@@ -19,7 +19,7 @@ fn mandelbrot_iterate(z: Complex, c: Complex) -> Complex {
 }
 
 fn mandelbrot_test(c: Complex) -> TestResult {
-    static MAX_ITERATION: u32 = 256;
+    static MAX_ITERATION: u32 = 64;
     let mut z = Complex::new(0.0, 0.0);
     for i in 0..MAX_ITERATION {
         z = mandelbrot_iterate(z, c);
@@ -29,13 +29,13 @@ fn mandelbrot_test(c: Complex) -> TestResult {
     }
     return TestResult::Converge;
 }
-
+ 
 fn colorize(result: TestResult) -> Color {
     let (i, z, c) = match result {
-        TestResult::Converge => return Color::RGB(0, 0, 0),
+        TestResult::Converge => return Color::RGB(255, 255, 255),
         TestResult::Diverge { iteration, z, c } => (iteration, z, c)
     };
-    let brightness = 1.0 - (i as f64 / 32 as f64);
+    let brightness = i as f64 / 64 as f64;
     let brightness = (brightness * 255.0).round() as u8;
     Color::RGB(brightness, brightness, brightness)
 }
@@ -62,15 +62,30 @@ fn main() {
 
     'mainloop: loop {
         for event in event_pump.poll_iter() {
+            
             match event {
                 Event::Quit {..} |
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'mainloop;
+                },
+                Event::MouseMotion { mousestate, xrel, yrel , .. } => {
+                    if mousestate.is_mouse_button_pressed(sdl2::mouse::MouseButton::Left) {
+                        center.real -= xrel as f64 * scale;
+                        center.imag -= yrel as f64 * scale;
+                    }
+                },
+                Event::MouseWheel { y, .. } => {
+                    scale *= (1.2 as f64).powi(-y);
                 }
                 _ => {}
             }
         }
-        const CORE_COUNT: u32 = 16;
+
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
+        canvas.clear();
+
+        let start_time = std::time::SystemTime::now();
+        const CORE_COUNT: u32 = 24;
         const BLOCK_HEIGHT: usize = (HEIGHT / CORE_COUNT) as usize;
         const BLOCK_SIZE: usize = BLOCK_HEIGHT * WIDTH as usize;
         let mut threads = vec![];
@@ -81,7 +96,7 @@ fn main() {
                 let start_y = i as i32 * BLOCK_HEIGHT as i32;
                 for y in start_y..(start_y + BLOCK_HEIGHT as i32) {
                     for x in 0..WIDTH as i32 {
-                        let c = Complex::new((x - WIDTH as i32 / 2) as f64 * scale, (y - HEIGHT as i32 / 2) as f64 * scale);
+                        let c = center + Complex::new((x - WIDTH as i32 / 2) as f64 * scale, (y - HEIGHT as i32 / 2) as f64 * scale);
                         array.push(colorize(mandelbrot_test(c)));
                     }
                 }
@@ -98,7 +113,9 @@ fn main() {
                 counter += 1;
             }
         }
-        println!("Render finished");
+        let stop_time = std::time::SystemTime::now();
+        let ms_elapsed = stop_time.duration_since(start_time).unwrap().as_nanos() as f32 / 1_000_000.0;
+        println!("Render finished in {:.6} ms", ms_elapsed);
         canvas.present();
     }
 }
