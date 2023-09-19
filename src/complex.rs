@@ -68,9 +68,6 @@ impl Complex {
     pub fn norm_sq(&self) -> f64 {
         self.real * self.real + self.imag * self.imag
     }
-    pub fn norm(&self) -> f64 {
-        self.norm_sq().sqrt()
-    }
     pub fn conjugate(&self) -> Complex {
         Complex { real: self.real, imag: -self.imag }
     }
