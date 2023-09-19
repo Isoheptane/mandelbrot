@@ -51,7 +51,7 @@ fn hsv_to_rgb(hsv: (f32, f32, f32)) -> Color {
     };
     Color::RGB((r * 255.0).round() as u8, (g * 255.0).round() as u8, (b * 255.0).round() as u8)
 }
- 
+
 fn colorize(result: TestResult) -> Color {
     let (i, _, _) = match result {
         TestResult::Converge => return Color::RGB(255, 255, 255),
