@@ -1,5 +1,5 @@
 #[derive(Clone, Copy)]
-struct Complex {
+pub struct Complex {
     pub real: f64,
     pub imag: f64
 }
@@ -62,6 +62,9 @@ impl std::ops::Div for Complex {
 }
 
 impl Complex {
+    pub fn new(real: f64, imag: f64) -> Complex {
+        Complex { real, imag }
+    }
     pub fn norm_sq(&self) -> f64 {
         self.real * self.real + self.imag * self.imag
     }
